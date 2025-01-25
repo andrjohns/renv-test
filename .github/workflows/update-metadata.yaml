@@ -25,4 +25,8 @@ jobs:
 
       - name: Test renv setup
         shell: Rscript {0}
-        run: library(future)
+        run: renv::status()
+
+      - name: Test renv setup
+        shell: Rscript {0}
+        run: source("script.R")
