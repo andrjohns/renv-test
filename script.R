@@ -1,1 +1,0 @@
-future::plan(future::multisession())

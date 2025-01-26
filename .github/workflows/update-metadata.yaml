@@ -1,32 +1,73 @@
-name: "Test Renv setup"
+name: "Update Metadata"
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+  schedule:
+    - cron: '0 15 * * *'
 
 jobs:
-  test-install:
+  update-metadata:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.DATAFLOWS_WORKFLOW_TOKEN }}
+      az_tenant_id: ${{ secrets.AZ_TENANT_ID }}
+      az_app_id_pbi_dataset: ${{ secrets.AZ_APP_ID_PBI_DATASET }}
+      az_cli_secret_pbi_dataset: ${{ secrets.AZ_CLI_SECRET_PBI_DATASET }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - uses: r-lib/actions/setup-r@v2-branch
+      - uses: r-lib/actions/setup-r@v2
         with:
           r-version: 'renv'
       - name: 📦 Install dependencies with renv
-        uses: r-lib/actions/setup-renv@v2-branch
+        uses: r-lib/actions/setup-renv@v2
         env:
           RENV_CONFIG_PAK_ENABLED: true
+
+      - name: Run script
+        run: Rscript update_metadata.R
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          cache-version: 2
+          node-version: 'latest'
 
-      - name: Test renv setup
-        shell: Rscript {0}
-        run: renv::status()
+      - name: Install Mermaid CLI
+        run: npm install -g @mermaid-js/mermaid-cli
 
-      - name: Test renv setup
+      - name: Create rendered diagrams
+        run: |
+          # Dataset ERDs are generated as Mermaid diagrams in the README.md files
+          #  - Render these diagrams as PDFs using the mmdc cli
+          changed_files <- system("git diff --name-only", intern = TRUE)
+          erds <- grep("(Dataflows|Datasets)/(.*)/README.md", changed_files, value = TRUE)
+          if (length(erds) > 0) {
+            purrr::walk(erds, function(diagram) {
+              # Deleted ERDs will also be listed as a 'changed' file, so check exists first
+              if (file.exists(diagram)) {
+                # Execute cli with aa-exec for sandboxing issues
+                system(paste0("aa-exec --profile=chrome mmdc -i ", shQuote(diagram),
+                              " -o ", shQuote(gsub(".md", ".pdf", diagram, fixed = TRUE)),
+                              " -f ",
+                              ' --configFile="', file.path(getwd(), "mermaidRenderConfig.json"), '"',
+                              " --width 10000 --height 10000"))
+                file.rename(gsub("README.md", "README-1.pdf", diagram, fixed = TRUE), gsub("README.md", "ERD.pdf", diagram, fixed = TRUE))
+              }
+            })
+          }
         shell: Rscript {0}
-        run: source("script.R")
+
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          if [[ -n "$(git status -s)" ]]; then
+            git add -A
+            git commit -m "Sync dataflow and dataset metadata"
+            git push
+          fi

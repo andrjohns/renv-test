@@ -435,6 +435,32 @@
       ],
       "Hash": "1cba04a4e9414bdefc9dcaa99649a8dc"
     },
+    "qiverse.powerbi": {
+      "Package": "qiverse.powerbi",
+      "Version": "0.0.1.0",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "AUS-DOH-Safety-and-Quality",
+      "RemoteRepo": "qiverse.powerbi",
+      "RemoteRef": "main",
+      "RemoteSha": "a737f547f2bd2702651d8d8a4fc62273c97c534d",
+      "Requirements": [
+        "data.table",
+        "dplyr",
+        "glue",
+        "httr",
+        "jsonlite",
+        "magrittr",
+        "purrr",
+        "readr",
+        "stats",
+        "stringr",
+        "uuid",
+        "xml2"
+      ],
+      "Hash": "ee8ae7306c620d7a03f3a0308ad9c70e"
+    },
     "rappdirs": {
       "Package": "rappdirs",
       "Version": "0.3.3",
